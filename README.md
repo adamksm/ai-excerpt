@@ -1,105 +1,92 @@
-## Researching Agentic Excerpt Tagging & Recommendation for Scholarly Discovery
+## Researching Agentic Excerpt Tagging, Section‑Aware Topic Augmentation & Recommendation for Scholarly Discovery
 
-### 1  Executive Summary
-Students and researchers often overlook pivotal literature because public search portals depend on rigid ontologies (e.g. MeSH, OpenAlex). Librarians cannot anticipate every field‑specific nuance. **Agentic Excerpt Tagging (AET)** bridges this gap: an offline large‑language‑model (LLM) pipeline extracts *excerpt‑tags*—short, transparent nuggets such as:
+### 1 Executive Summary
+Students and researchers often overlook pivotal literature because public search portals depend on rigid ontologies (e.g. MeSH) or semi‑dynamic graphs such as [OpenAlex Topics](https://docs.openalex.org/api-entities/topics). Librarians cannot anticipate every field‑specific nuance, while users frequently want to search *inside* articles—e.g. *“methods that use CRISPR in zebrafish”*—rather than just at the title/keyword level.
 
-* “Surgical excision reduced tumour volume by 45 % in a murine model.”
-* “Radiotherapy with cisplatin achieved a 20 % survival benefit.”
-* “Meta‑analysis of 320 000 tweets reveals vaccine‑hesitancy trends.”
+**Agentic Excerpt Tagging (AET)** bridges this gap: an offline large‑language‑model (LLM) pipeline extracts two complementary, transparent metadata layers from full‑text open‑access PDFs:
 
-Each tag is embedded, compared, and pre‑computed into top‑k similarity lists. A lightweight Django portal offers two modes:
+1. **Excerpt‑Tags** – concise, human‑readable snippets such as  
+   *“Surgical excision reduced tumour volume by 45 % in a murine model.”*  
+   *“Radiotherapy with cisplatin achieved a 20 % survival benefit.”*  
+   *“Meta‑analysis of 320 000 tweets reveals vaccine‑hesitancy trends.”*
+2. **Section‑Aware Topic Labels** – OpenAlex topic identifiers (*e.g. topic:V8/Immunology*), **scoped** to the structural section in which they occur (*Methods → Immunology* vs *Results → Oncology*).  
+   This mirrors how researchers mentally parse papers and enables precise queries such as **Methods ∩ Machine‑Learning**.
 
-* **Baseline** – conventional filter search.
-* **Experimental** – filter search **plus** excerpt‑tags and “You‑might‑also‑read” recommendations (k‑nearest‑neighbour pre‑processing).
+Both layers are embedded, compared and pre‑computed into top‑k similarity lists. A lightweight Django portal offers two modes:
 
-> **No machine‑learning inference runs at query time.**
+* **Baseline** – conventional faceted search on bibliographic & topic metadata.
+* **Experimental** – baseline **plus** excerpt‑tags, section‑aware topics and “You‑might‑also‑read” recommendations (k‑nearest‑neighbour pre‑processing).
 
-Over 24 months we will prototype in two domains (likely medical & environmental sciences), process ≥ 20 000 open‑access PDFs, refine prompts & models, and release all code, metadata, and evaluation artefacts under open licences.
+> **No machine‑learning inference runs at query time.** All heavy work is performed offline, ensuring a low‑cost, library‑friendly runtime.
 
-### 2  Alignment with the Call (Criterion 1 — Scope, 10 %)
-* **Aim fit** – enhances open‑science infrastructure through AI‑driven metadata enrichment.
+Over 24 months we will prototype in two domains (medical & environmental sciences), process ≥ 20 000 open‑access PDFs, refine prompts & models, and release all code, metadata and evaluation artefacts under open licences.
+
+### 2 Alignment with the Call (Criterion 1 — Scope, 10 %)
+* **Aim fit** – enriches open‑science infrastructure with AI‑driven metadata and fine‑grained topic augmentation.  
 * **Priority topics** – AI & data‑driven innovation for open science; user‑centred scholarly information systems.
 
-### 3  Objectives & Success Metrics (Criterion 2 — Scientific Quality, 40 %)
+### 3 Objectives & Success Metrics (Criterion 2 — Scientific Quality, 40 %)
 
-| ID | Objective | Quantitative Target (headline metric **TBD** by researcher) |
-|----|-----------|-------------------------------------------------------------|
-| **O1** | Design an agentic LLM pipeline that extracts excerpt‑tags. | *Macro‑averaged F1 ≥ 0.80* on a 1 000‑record gold set, where a “match” is counted if ROUGE‑L ≥ 0.70 **or** cosine similarity of sentence embeddings ≥ 0.85 (evaluation protocol TBD). |
-| **O2** | Apply pipeline to ≥ 20 000 PDFs in two domains; generate vectors & top‑k recommendations. | ≥ 90 % of tags judged “useful” (Likert ≥ 4) by two domain experts, κ ≥ 0.75 (assessment rubric TBD). |
-| **O3** | Deploy a Django + NGINX search portal with baseline & experimental modes. | ≥ 95 % uptime; p95 latency < 150 ms (monitoring stack TBD). |
-| **O4** | Conduct two iterative user studies (Year 1 & Year 2) with ≥ 200 participants each. | Headline metrics TBD (candidates: task‑completion time, nDCG@10, NASA‑TLX workload). |
-| **O5** | Release code, enriched dataset, prompts & evaluation scripts under MIT/CC‑BY. | Zenodo DOI, GitHub repo, OSF preregistration published (impact tracking TBD). |
+| ID | Objective | Target (headline metric TBD with researcher) |
+|----|-----------|----------------------------------------------|
+| **O1** | Design an *agentic*, section‑aware LLM pipeline that extracts excerpt‑tags **and** scoped OpenAlex topic labels. | Macro‑F1 ≥ 0.80 on a 1 000‑record gold set (match if ROUGE‑L ≥ 0.70 **or** cosine ≥ 0.85) |
+| **O2** | Process ≥ 20 000 PDFs; generate vectors & top‑k recommendations. | ≥ 90 % of tags/labels rated “useful” (Likert ≥ 4) by two experts, κ ≥ 0.75 |
+| **O3** | Deploy a Django + NGINX portal with baseline & experimental modes. | ≥ 95 % uptime; P95 latency < 150 ms |
+| **O4** | Conduct two user studies (Y1 & Y2, ≥ 200 participants each). | Metrics TBD (task‑time, nDCG@10, NASA‑TLX) |
+| **O5** | Release code, data & evaluation scripts under MIT/CC‑BY. | Zenodo DOI, GitHub repo, OSF preregistration |
 
-### 4  Methodology
-#### 4.1  Agentic Excerpt Tagging  (Months 1–8)
-* Local LLM actors **Extractor → Tagger → Verifier** running on open‑source models (e.g. Mixtral‑8×22B, Llama‑3‑8B‑Instruct, Phi‑3‑medium).
-* Prompt‑ & model‑sweep on a 1 000‑record validation set; best configuration locked for production.
+### 4 Methodology
+#### 4.1 Agentic Excerpt & Topic Tagging (Months 1–8)
+* Local LLM actors **Extractor → Tagger → Verifier** using open‑source models (Mixtral‑8×22B, Llama‑3‑8B‑Instruct, Phi‑3‑medium).  
+* Extractor splits papers by IMRaD/XML cues; Tagger processes each section independently.  
+* Prompt/model sweep on a 1 000‑record validation set; best configuration frozen.
 
-#### 4.2  Similarity & Recommendation (offline, Months 4–12)
-* Embed each tag with a lightweight semantic model; store vectors in FAISS/Qdrant (final choice TBD).
+#### 4.2 Similarity & Recommendation (Months 4–12)
+* Embed each tag **and** scoped‑topic label; store vectors in FAISS/Qdrant.  
 * Pre‑compute top‑k neighbours; persist IDs & ranks in PostgreSQL.
 
-#### 4.3  Runtime Delivery (Months 6–18)
-* Containerised Django + NGINX + Postgres stack, suitable for cloud or on‑prem.
-* Session toggle between baseline and experimental modes.
+#### 4.3 Runtime Delivery (Months 6–18)
+* Containerised Django + NGINX + PostgreSQL stack, cloud‑ or on‑prem‑deployable (incl. air‑gapped).  
+* User toggle between baseline and experimental modes.
 
-#### 4.4  Evaluation (Months 9–12 & 18–22)
-* Controlled studies with interdisciplinary student cohorts (n ≥ 200 each).
-* Metrics and questionnaires TBD, in consultation with the researcher and ethics board.
+#### 4.4 Evaluation (Months 9–12 & 18–22)
+* Controlled studies with multidisciplinary student cohorts (n ≥ 200 each).  
+* Metrics & questionnaires finalised with the Scientific Researcher and ethics board.
 
-#### 4.5  Expansion & Dissemination (Months 16–24)
-* Scale corpus to ≥ 20 000 PDFs with expert validation.
-* Publish metadata, code, prompts, evaluation sets.
-* Host virtual workshop and publish an adoption guide for libraries.
+#### 4.5 Expansion & Dissemination (Months 16–24)
+* Scale corpus to ≥ 20 000 PDFs with expert validation.  
+* Publish all artefacts; host a virtual workshop; produce an adoption guide for libraries.
 
-### 5  Work Packages, Milestones & Timeline
+### 5 Work Packages, Milestones & Timeline
+
 | WP | Months | Lead | Key Outputs | Milestone |
 |----|--------|------|-------------|-----------|
 | **WP1** | 1–4 | Felix | 1 000‑record gold set; system specification | **M1** – validated gold set |
-| **WP2** | 3–8 | Adam | Dockerised LLM pipeline; evaluation report | **M2** – pipeline meets O1 target |
-| **WP3** | 6–10 | Adam | Enriched metadata v1 (≥ 20 k PDFs) | **M3** – metadata release v1 |
-| **WP4** | 7–14 | Adam | Public portal (baseline & experimental) | **M4** – portal online |
-| **WP5** | 9–12 | Researcher | Dataset; analysis report; evaluation criteria | **M5** – Y1 user‑study complete |
-| **WP6** | 12–18 | Adam | Enriched metadata v2; recommendations table | **M6** – recommendation engine pass |
-| **WP7** | 18–22 | Researcher | Final analysis; journal submission | **M7** – manuscript submitted |
-| **WP8** | 20–24 | Felix | Zenodo deposit; workshop; adoption guide | **M8** – project close‑out |
+| **WP2** | 3–8 | Adam | Dockerised LLM pipeline; evaluation report | **M2** – pipeline meets O1 |
+| **WP3** | 6–10 | Adam / Felix | Enriched metadata v1 (≥ 20 k PDFs) incl. scoped topics | **M3** – metadata v1 released |
+| **WP4** | 7–14 | Adam / UU Research Engineer | Public portal (baseline + experimental) | **M4** – portal online |
+| **WP5** | 9–12 | Scientific Researcher | Dataset; interim analysis; evaluation criteria | **M5** – Y1 user study complete |
+| **WP6** | 9–14 | UU Research Engineers | Performance optimisation; CI/CD; integration tests | **M6** – production‑ready image |
+| **WP7** | 12–18 | Adam | Enriched metadata v2; recommendation table | **M7** – recommender passes QA |
+| **WP8** | 18–22 | Scientific Researcher | Final analysis; journal submission | **M8** – manuscript submitted |
+| **WP9** | 20–24 | Felix | Zenodo deposit; workshop; adoption guide | **M9** – project closed |
 
-### 6  Team & Roles (Criterion 3 — Feasibility, 30 %)
+### 6 Team & Roles (Criterion 3 — Feasibility, 30 %)
+
 | Role | Name | FTE | Responsibilities |
 |------|------|-----|------------------|
-| Data Solution Architect | **Adam** | 0.5 | Pipeline design, infra, fine‑tuning, validation, GDPR compliance |
-| University Information Officer | **Felix** | 0.3 | Requirements, metadata curation, stakeholder liaison |
-| Scientific Researcher | **TBD** | 0.5 | Study design, metrics definition (TBD), publications, ethics lead |
-| CS Advisor (IR Professor) | **Prof. TBD** | 0.05 | Quarterly methods audit, gate approvals |
-| Student Assistants | — | 0.3 | Annotation, recruitment, testing |
+| Data Solution Architect | **Adam** | 0.5 | Pipeline design, infra, fine‑tuning, validation, GDPR compliance |
+| University Information Officer | **Felix** | 0.3 | Requirements, metadata curation, stakeholder liaison |
+| UU Research Engineer | **Roel** | 0.2 | Performance tuning, CI/CD, deployment support |
+| Scientific Researcher | **TBD** | 0.5 | Study design, metrics, publications, ethics lead |
+| CS Advisor (IR Prof.) | **Prof. TBD** | 0.05 | Quarterly methods audit, gate approvals |
+| Student Assistants | — | 0.3 | Annotation, recruitment, testing |
 
-### 7  Budget (EUR, 24 months)
+### 7 Budget (EUR, 24 months)
+
 | Item | Amount | Rationale |
 |------|--------|-----------|
-| **Personnel** (1.65 FTE core + 0.05 FTE advisor) | 184 000 | Adam, Felix, Researcher, Students, Advisor |
-| **GPU hardware** (on‑prem CapEx) | 20 000 | 2× A100 equivalents with 5‑year life |
-| **Cloud compute** (OpEx) | 20 000 | Burst capacity for model sweeps |
-| **Participant incentives** | 10 000 | ~ €25 × 400 participants |
-| **Dissemination & workshops** | 6 000 | Venue, travel, materials |
-| **Contingency & licences** | 10 000 | Reserve for inference pricing changes |
-| **Total** | **250 000** | Matches call ceiling |
-
-### 8  Risk & Mitigation
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|-----------|
-| GPU supply constraints | Medium | Medium | Early reservation; hybrid on‑prem/cloud strategy |
-| Accuracy variance across domains | Medium | High | Domain‑specific prompt tuning; human validation loop |
-| Recruitment shortfall | Low | High | Multi‑faculty outreach; course‑credit incentives |
-| Staff turnover | Medium | Medium | Containerised code; CS‑advisor back‑up |
-| Model licensing changes | Medium | Medium | Maintain plan‑B open‑weights; licence audit at each release |
-
-### 9  Expected Impact (Criterion 4 — 20 %)
-* **Scientific** – first open, cross‑disciplinary benchmark for excerpt‑tagging; longitudinal evidence on LLM‑assisted discovery.
-* **Societal** – faster, more transparent access to evidence; improved information literacy.
-* **Library practice** – replicable, open‑source enhancement of discovery layers without live ML infrastructure.
-
-> **KPI** – at least three external library pilots adopt the code within 12 months post‑project (tracking plan TBD).
-
----
-**Contact:** Adam, Felix
+| Personnel (1.85 FTE core + 0.05 FTE advisor) | ~200 000 | Adam, Felix, Research Engineer, Researcher, Students, Advisor |
+| GPU hardware (CapEx) | ~20 000 | 2 × A100‑class GPU Workstations (5‑year life) |
+| Cloud compute (OpEx) | ~20 000
 
