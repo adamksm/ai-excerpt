@@ -87,6 +87,6 @@ Over 24 months we will prototype in two domains (medical & environmental sci
 | Item | Amount | Rationale |
 |------|--------|-----------|
 | Personnel (1.85 FTE core + 0.05 FTE advisor) | ~200 000 | Adam, Felix, Research Engineer, Researcher, Students, Advisor |
-| GPU hardware (CapEx) | ~20 000 | 2 × A100‑class GPU Workstations (5‑year life) |
-| Cloud compute (OpEx) | ~20 000
+| GPU hardware (CapEx) + Cloud Compute (OpEx)| ~50 000 OR NWO Large Compute Grant | 2 × A100‑class GPU Workstations (5‑year life) |
+
 
